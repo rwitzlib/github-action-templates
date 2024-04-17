@@ -66,15 +66,15 @@ jobs:
 
       - name: Build Image
         run: |
-          docker build -t ${{ inputs.image_name }} ${{ inputs.dockerfile }}
+          docker build -t ${{ inputs.image_name }} ${{ inputs.dockerfile_directory }}
 
       - id: push_image
         name: Push Image to ECR
         run: |
-          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ inputs.ecr_repository_name }}
+          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ inputs.ecr_repository }}
+          docker tag ${{ inputs.image_name }} ${{ inputs.ecr_repository }}/${{ inputs.image_name }}:${{ github.sha }}
+          # docker push ${{ inputs.ecr_repository }}/${{ inputs.image_name }}:${{ github.sha }}
           echo "IMAGE_TAG=${{ github.sha }}" >> $GITHUB_OUTPUT
-          docker tag ${{ inputs.image_name }} ${{ inputs.ecr_repository_name }}/${{ inputs.image_name }}:${{ github.sha }}
-          # docker push ${{ inputs.ecr_repository_name }}/${{ inputs.image_name }}:${{ github.sha }}
 
   terraform_validate:
     runs-on: ubuntu-latest
@@ -122,7 +122,7 @@ jobs:
           cd ${{ inputs.terraform_directory }}
           terraform init -upgrade
           terraform validate
-          echo "image_tag = \"${{ needs.build.outputs.image_tag }}\"" >> dev.tfvars
+          echo "image_tag = \"${{ needs.image_build.outputs.image_tag }}\"" >> dev.tfvars
           terraform plan -var-file="dev.tfvars" -out ../tfplan
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
