@@ -4,7 +4,7 @@ on:
       terraform_directory:
         type: string
         required: false
-        default: /tf
+        default: ./tf
 
 jobs:
   terraform_validate:
@@ -23,7 +23,7 @@ jobs:
       - name: Terraform Setup
         uses: hashicorp/setup-terraform@v3
 
-      - name: Terraform Planning
+      - name: Terraform Validate
         run: |
           cd ${{ inputs.terraform_directory }}
           terraform init -upgrade
@@ -47,7 +47,7 @@ jobs:
       - name: Terraform Setup
         uses: hashicorp/setup-terraform@v3
 
-      - name: Terraform Planning
+      - name: Terraform Plan
         run: |
           cd ${{ inputs.terraform_directory }}
           terraform init -upgrade
