@@ -3,7 +3,18 @@ name: .NET Container Deployment
 on:
   workflow_call:
     inputs:
-      asdf
+      ecr_repository_name:
+        type: string
+        required: true
+      image_name:
+        type: string
+        required: true
+      dockerfile:
+        type: string
+        required: true
+      terraform_directory:
+        type: string
+        required: true
 
 jobs:
   dotnet_build:
@@ -16,15 +27,9 @@ jobs:
             
       - name: Build and Test
         run: |
-          
-            docker build -t backtest .
-      - id: push_image
-        name: Push to ECR
-        run: |
-            aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin 100008144700.dkr.ecr.us-east-2.amazonaws.com
-            echo "IMAGE_TAG=${{ github.sha }}" >> $GITHUB_OUTPUT
-            docker tag backtest 100008144700.dkr.ecr.us-east-2.amazonaws.com/lad-dev-marketviewer-backtest:${{ github.sha }}
-            docker push 100008144700.dkr.ecr.us-east-2.amazonaws.com/lad-dev-marketviewer-backtest:${{ github.sha }}
+          dotnet restore
+          dotnet build
+          dotnet test
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -45,15 +50,19 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-2
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Build Image
+        run: |
+          docker build -t ${{ inputs.image_name }} ${{ inputs.dockerfile }}
 
       - id: push_image
-        name: Push to ECR
+        name: Push Image to ECR
         run: |
-            aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin 100008144700.dkr.ecr.us-east-2.amazonaws.com
-            echo "IMAGE_TAG=${{ github.sha }}" >> $GITHUB_OUTPUT
-            docker tag backtest 100008144700.dkr.ecr.us-east-2.amazonaws.com/lad-dev-marketviewer-backtest:${{ github.sha }}
-            docker push 100008144700.dkr.ecr.us-east-2.amazonaws.com/lad-dev-marketviewer-backtest:${{ github.sha }}
+          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ inputs.ecr_repository_name }}
+          echo "IMAGE_TAG=${{ github.sha }}" >> $GITHUB_OUTPUT
+          docker tag ${{ inputs.image_name }} ${{ inputs.ecr_repository_name }}/${{ inputs.image_name }}:${{ github.sha }}
+          docker push ${{ inputs.ecr_repository_name }}/${{ inputs.image_name }}:${{ github.sha }}
 
   terraform_validate:
     runs-on: ubuntu-latest
@@ -66,14 +75,14 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-2
+          aws-region: ${{ secrets.AWS_REGION }}
           
       - name: Terraform Setup
         uses: hashicorp/setup-terraform@v3
 
-      - name: Terraform Planning
+      - name: Terraform Validate
         run: |
-          cd tf
+          cd ${{ inputs.terraform_directory }}
           terraform init -upgrade
           terraform validate
 
@@ -91,14 +100,14 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-2
+          aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Terraform Setup
         uses: hashicorp/setup-terraform@v3
 
-      - name: Terraform Planning
+      - name: Terraform Plan
         run: |
-          cd tf
+          cd ${{ inputs.terraform_directory }}
           terraform init -upgrade
           terraform validate
           echo "image_tag = \"${{ needs.build.outputs.image_tag }}\"" >> dev.tfvars
@@ -122,7 +131,7 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-2
+          aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Terraform Setup
         uses: hashicorp/setup-terraform@v3
@@ -134,6 +143,6 @@ jobs:
 
       - name: Terraform Apply
         run: |
-          cd tf
+          cd ${{ inputs.terraform_directory }}
           terraform init -upgrade
           terraform apply ../tfplan
