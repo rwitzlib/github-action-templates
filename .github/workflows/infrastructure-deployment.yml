@@ -1,0 +1,92 @@
+name: Infrastructure Terraform Deployment
+
+on:
+  workflow_call:
+    inputs:
+      terraform_directory:
+        type: string
+        required: false
+        default: ./src
+
+jobs:
+  terraform_validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2
+          
+      - name: Terraform Setup
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Planning
+        run: |
+          cd tf
+          terraform init -upgrade
+          terraform validate
+
+  terraform_plan:
+    runs-on: ubuntu-latest
+    needs: 
+      - terraform_validate
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Terraform Setup
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Planning
+        run: |
+          cd ${{ inputs.terraform_directory }}}
+          terraform init -upgrade
+          terraform validate
+          terraform plan -out ../tfplan
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform_plan
+          path: tfplan
+        
+  terraform_deploy:
+    runs-on: ubuntu-latest
+    needs: 
+      - terraform_plan
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Terraform Setup
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: terraform_plan
+
+      - name: Terraform Apply
+        run: |
+          cd ${{ inputs.terraform_directory }}
+          terraform init -upgrade
+          terraform apply ../tfplan
