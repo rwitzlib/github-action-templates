@@ -25,7 +25,7 @@ jobs:
 
       - name: Terraform Planning
         run: |
-          cd tf
+          cd ${{ inputs.terraform_directory }}}
           terraform init -upgrade
           terraform validate
 
