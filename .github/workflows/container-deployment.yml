@@ -9,7 +9,7 @@ on:
       image_name:
         type: string
         required: true
-      dockerfile:
+      dockerfile_directory:
         type: string
         required: true
       project_directory:
