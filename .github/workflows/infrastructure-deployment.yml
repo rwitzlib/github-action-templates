@@ -6,7 +6,7 @@ on:
       terraform_directory:
         type: string
         required: false
-        default: ./src
+        default: /tf
 
 jobs:
   terraform_validate:
