@@ -73,7 +73,7 @@ jobs:
         run: |
           aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ inputs.ecr_repository }}
           docker tag ${{ inputs.image_name }} ${{ inputs.ecr_repository }}/${{ inputs.image_name }}:${{ github.sha }}
-          # docker push ${{ inputs.ecr_repository }}/${{ inputs.image_name }}:${{ github.sha }}
+          docker push ${{ inputs.ecr_repository }}/${{ inputs.image_name }}:${{ github.sha }}
           echo "IMAGE_TAG=${{ github.sha }}" >> $GITHUB_OUTPUT
 
   terraform_validate:
