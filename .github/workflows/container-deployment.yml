@@ -72,9 +72,16 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
+      - name: Add Private NuGet Registry
+        if: ${{ inputs.private_nuget_registry }} == ''
+        run: |
+          echo "PRIVATE_NUGET_REGISTRY_USER=${{ secrets.PRIVATE_NUGET_REGISTRY_USER }}" >> arguments.txt
+          echo "PRIVATE_NUGET_REGISTRY_PASS=${{ secrets.PRIVATE_NUGET_REGISTRY_PASS }}" >> arguments.txt
+          export BUILD_ARGS=$(for arg in $(cat arguments.txt); do echo "--build-arg $arg "; done | tr -d '\n')
+
       - name: Build Image
         run: |
-          docker build -t ${{ inputs.image_name }} ${{ inputs.dockerfile_directory }}
+          docker build -t ${{ inputs.image_name }} $BUILD_ARGS ${{ inputs.dockerfile_directory }}
 
       - id: push_image
         name: Push Image to ECR
