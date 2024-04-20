@@ -135,15 +135,17 @@ jobs:
       - name: Terraform Setup
         uses: hashicorp/setup-terraform@v3
 
-      - name: asdf
-        run: mkdir ./asdf
+      - id: asdf
+        run: |
+          echo "token=POLYGON_TOKEN" >> $GITHUB_OUTPUT
 
       - name: qwer
-        run: ls
+        run: |
+          echo "token = ${{ secrets[steps.asdf.outputs.token]}}"
 
       - name: Setup Terraform Variables
         run: |
-          for i in $(echo ${{ inputs.terraform_varibles }} | tr ";" "\n")
+          for i in $(echo ${{ inputs.terraform_secret_variables }} | tr ";" "\n")
           do
             echo $i
           done
