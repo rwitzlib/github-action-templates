@@ -38,7 +38,7 @@ jobs:
           global-json-file: ${{ inputs.global_json_file }}
 
       - name: Add Private NuGet Registry
-        if: ${{ inputs.private_nuget_registry }} == ''
+        if: ${{ inputs.private_nuget_registry }} != ''
         run: |
           dotnet nuget add source ${{ inputs.private_nuget_registry }} \
             --username ${{ secrets.PRIVATE_NUGET_REGISTRY_USER }} --password ${{ secrets.PRIVATE_NUGET_REGISTRY_PASS }} --store-password-in-clear-text
