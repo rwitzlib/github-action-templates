@@ -23,8 +23,6 @@ on:
         required: true
       private_nuget_registry:
         type: string
-      terraform_secret_variables:
-        type: string
 
 jobs:
   dotnet_build:
@@ -135,33 +133,22 @@ jobs:
       - name: Terraform Setup
         uses: hashicorp/setup-terraform@v3
 
-      - id: asdf
-        run: |
-          echo "token=POLYGON_TOKEN" >> $GITHUB_OUTPUT
-
-      - name: qwer
-        run: |
-          echo "token = ${{ secrets[steps.asdf.outputs.token]}}"
-
       - name: Setup Terraform Variables
         run: |
-          for i in $(echo ${{ inputs.terraform_secret_variables }} | tr ";" "\n")
-          do
-            echo $i
-          done
           echo "image_tag = \"${{ needs.image_build.outputs.image_tag }}\"" >> dev.tfvars
 
       - name: Terraform Plan
         run: |
           cd ${{ inputs.terraform_directory }}
-          terraform init -upgrade
+          terraform init
           terraform validate
-          terraform plan -var-file="dev.tfvars" -out ../tfplan
+          terraform plan -input=false -var-file="../dev.tfvars" -out ../final.tfplan
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: terraform_plan
-          path: tfplan
+          path: final.tfplan
         
   deploy:
     runs-on: ubuntu-latest
@@ -189,5 +176,5 @@ jobs:
       - name: Terraform Apply
         run: |
           cd ${{ inputs.terraform_directory }}
-          terraform init -upgrade
-          terraform apply ../tfplan
+          terraform init
+          terraform apply -auto-approve ../final.tfplan
