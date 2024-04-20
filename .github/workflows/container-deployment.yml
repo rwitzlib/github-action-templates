@@ -146,7 +146,6 @@ jobs:
           for i in $(echo ${{ inputs.terraform_varibles }} | tr ";" "\n")
           do
             echo $i
-            echo "$i = \"${{ secrets[format('{0}', $i)] }}\"" >> dev.tfvars
           done
           echo "image_tag = \"${{ needs.image_build.outputs.image_tag }}\"" >> dev.tfvars
 
