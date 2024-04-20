@@ -23,6 +23,7 @@ on:
         required: true
       private_nuget_registry:
         type: string
+        default: ''
 
 jobs:
   dotnet_build:
