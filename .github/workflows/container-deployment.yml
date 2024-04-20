@@ -78,13 +78,9 @@ jobs:
           echo "PRIVATE_NUGET_REGISTRY_USER=${{ secrets.PRIVATE_NUGET_REGISTRY_USER }}" >> arguments.txt
           echo "PRIVATE_NUGET_REGISTRY_PASS=${{ secrets.PRIVATE_NUGET_REGISTRY_PASS }}" >> arguments.txt
           echo "BUILD_ARGS=$(for arg in $(cat arguments.txt); do echo "--build-arg $arg "; done | tr -d '\n')" >> $GITHUB_ENV
-          # export BUILD_ARGS=$(for arg in $(cat arguments.txt); do echo "--build-arg $arg "; done | tr -d '\n')
-          # echo "$BUILD_ARGS" >> $GITHUB_ENV
-          echo $BUILD_ARGS
 
       - name: Build Image
         run: |
-          echo $BUILD_ARGS
           docker build -t ${{ inputs.image_name }} $BUILD_ARGS ${{ inputs.dockerfile_directory }}
 
       - id: push_image
