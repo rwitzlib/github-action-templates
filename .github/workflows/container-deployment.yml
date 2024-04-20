@@ -21,12 +21,13 @@ on:
       global_json_file:
         type: string
         required: true
+      private_nuget_registry:
+        type: string
+        default: ''
 
 jobs:
   dotnet_build:
     runs-on: ubuntu-latest
-    outputs:
-      image_tag: ${{ steps.push_image.outputs.image_tag }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -35,6 +36,12 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           global-json-file: ${{ inputs.global_json_file }}
+
+      - name: Add Private NuGet Registry
+        if: ${{ github.event.inputs.private_nuget_registry != '' }}
+        run: |
+          dotnet nuget add source ${{ inputs.private_nuget_registry }} \
+            --username ${{ secrets.PRIVATE_NUGET_REGISTRY_USER }} --password ${{ secrets.PRIVATE_NUGET_REGISTRY_PASS }} --store-password-in-clear-text
 
       - name: Build and Test
         run: |
@@ -66,9 +73,17 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
+      - name: Add Private NuGet Registry
+        if: ${{ inputs.private_nuget_registry }} == ''
+        run: |
+          echo "PRIVATE_NUGET_REGISTRY=${{ inputs.private_nuget_registry }}" >> arguments.txt
+          echo "PRIVATE_NUGET_REGISTRY_USER=${{ secrets.PRIVATE_NUGET_REGISTRY_USER }}" >> arguments.txt
+          echo "PRIVATE_NUGET_REGISTRY_PASS=${{ secrets.PRIVATE_NUGET_REGISTRY_PASS }}" >> arguments.txt
+          echo "BUILD_ARGS=$(for arg in $(cat arguments.txt); do echo "--build-arg $arg "; done | tr -d '\n')" >> $GITHUB_ENV
+
       - name: Build Image
         run: |
-          docker build -t ${{ inputs.image_name }} ${{ inputs.dockerfile_directory }}
+          docker build -t ${{ inputs.image_name }} $BUILD_ARGS ${{ inputs.dockerfile_directory }}
 
       - id: push_image
         name: Push Image to ECR
@@ -119,18 +134,22 @@ jobs:
       - name: Terraform Setup
         uses: hashicorp/setup-terraform@v3
 
+      - name: Setup Terraform Variables
+        run: |
+          echo "image_tag = \"${{ needs.image_build.outputs.image_tag }}\"" >> dev.tfvars
+
       - name: Terraform Plan
         run: |
           cd ${{ inputs.terraform_directory }}
-          terraform init -upgrade
+          terraform init
           terraform validate
-          echo "image_tag = \"${{ needs.image_build.outputs.image_tag }}\"" >> dev.tfvars
-          terraform plan -var-file="dev.tfvars" -out ../tfplan
+          terraform plan -input=false -var-file="../dev.tfvars" -out ../final.tfplan
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: terraform_plan
-          path: tfplan
+          path: final.tfplan
         
   deploy:
     runs-on: ubuntu-latest
@@ -158,5 +177,5 @@ jobs:
       - name: Terraform Apply
         run: |
           cd ${{ inputs.terraform_directory }}
-          terraform init -upgrade
-          terraform apply ../tfplan
+          terraform init
+          terraform apply -auto-approve ../final.tfplan
