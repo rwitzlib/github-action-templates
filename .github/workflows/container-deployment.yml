@@ -21,12 +21,18 @@ on:
       global_json_file:
         type: string
         required: true
+      private_registry:
+        type: string
+
+    secrets:
+      private_registry_user:
+        required: false
+      private_registry_pass:
+        required: false
 
 jobs:
   dotnet_build:
     runs-on: ubuntu-latest
-    outputs:
-      image_tag: ${{ steps.push_image.outputs.image_tag }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -35,6 +41,12 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           global-json-file: ${{ inputs.global_json_file }}
+
+      - name: Add Private Registry
+        if: ${{ inputs.private_registry }} == ''
+        run: |
+          dotnet nuget add source ${{ inputs.private_registry }} \
+            --username ${{ secrets.CI_MARKETVIEWER_REGISTRY_USER }} --password ${{ secrets.CI_MARKETVIEWER_REGISTRY_PASS }} --store-password-in-clear-text
 
       - name: Build and Test
         run: |
