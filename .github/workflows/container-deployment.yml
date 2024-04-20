@@ -75,6 +75,7 @@ jobs:
       - name: Add Private NuGet Registry
         if: ${{ inputs.private_nuget_registry }} == ''
         run: |
+          echo "PRIVATE_NUGET_REGISTRY=${{ inputs.private_nuget_registry }}" >> arguments.txt
           echo "PRIVATE_NUGET_REGISTRY_USER=${{ secrets.PRIVATE_NUGET_REGISTRY_USER }}" >> arguments.txt
           echo "PRIVATE_NUGET_REGISTRY_PASS=${{ secrets.PRIVATE_NUGET_REGISTRY_PASS }}" >> arguments.txt
           echo "BUILD_ARGS=$(for arg in $(cat arguments.txt); do echo "--build-arg $arg "; done | tr -d '\n')" >> $GITHUB_ENV
