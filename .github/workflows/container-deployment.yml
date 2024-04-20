@@ -78,6 +78,7 @@ jobs:
           echo "PRIVATE_NUGET_REGISTRY_USER=${{ secrets.PRIVATE_NUGET_REGISTRY_USER }}" >> arguments.txt
           echo "PRIVATE_NUGET_REGISTRY_PASS=${{ secrets.PRIVATE_NUGET_REGISTRY_PASS }}" >> arguments.txt
           export BUILD_ARGS=$(for arg in $(cat arguments.txt); do echo "--build-arg $arg "; done | tr -d '\n')
+          echo $BUILD_ARGS
 
       - name: Build Image
         run: |
