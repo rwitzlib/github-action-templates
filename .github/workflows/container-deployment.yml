@@ -23,7 +23,7 @@ on:
         required: true
       private_nuget_registry:
         type: string
-      terraform_varibles:
+      terraform_secret_variables:
         type: string
 
 jobs:
