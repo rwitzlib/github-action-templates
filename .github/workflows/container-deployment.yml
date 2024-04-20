@@ -23,6 +23,8 @@ on:
         required: true
       private_nuget_registry:
         type: string
+      terraform_varibles:
+        type: string
 
 jobs:
   dotnet_build:
@@ -133,12 +135,16 @@ jobs:
       - name: Terraform Setup
         uses: hashicorp/setup-terraform@v3
 
+      - name: Setup Terraform Variables
+        run: |
+          echo "polygon_token = \"${{}}\"" >> dev.tfvars
+          echo "image_tag = \"${{ needs.image_build.outputs.image_tag }}\"" >> dev.tfvars
+
       - name: Terraform Plan
         run: |
           cd ${{ inputs.terraform_directory }}
           terraform init -upgrade
           terraform validate
-          echo "image_tag = \"${{ needs.image_build.outputs.image_tag }}\"" >> dev.tfvars
           terraform plan -var-file="dev.tfvars" -out ../tfplan
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
