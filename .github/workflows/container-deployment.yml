@@ -9,7 +9,10 @@ on:
       image_name:
         type: string
         required: true
-      dockerfile_directory:
+      dockerfile:
+        type: string
+        required: true
+      context:
         type: string
         required: true
       project_directory:
