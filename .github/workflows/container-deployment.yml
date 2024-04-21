@@ -86,7 +86,7 @@ jobs:
 
       - name: Build Image
         run: |
-          docker build -t ${{ inputs.image_name }} $BUILD_ARGS ${{ inputs.dockerfile_directory }}
+          docker build -t ${{ inputs.image_name }} $BUILD_ARGS -f ${{ inputs.dockerfile }} ${{ inputs.context }}
 
       - id: push_image
         name: Push Image to ECR
