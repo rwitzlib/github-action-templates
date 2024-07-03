@@ -7,9 +7,6 @@ on:
         type: string
         required: true
         default: dev
-      ecr_registry:
-        type: string
-        required: true
       ecr_repo:
         type: string
         required: true
