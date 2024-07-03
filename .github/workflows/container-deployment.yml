@@ -7,10 +7,10 @@ on:
         type: string
         required: true
         default: dev
-      ecr_repository:
+      ecr_registry:
         type: string
         required: true
-      image_name:
+      ecr_repo:
         type: string
         required: true
       dockerfile:
@@ -67,8 +67,6 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - dotnet_build
-    outputs:
-      image_tag: ${{ steps.push_image.outputs.image_tag }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -90,15 +88,14 @@ jobs:
 
       - name: Build Image
         run: |
-          docker build -t ${{ inputs.image_name }} $BUILD_ARGS -f ${{ inputs.dockerfile }} ${{ inputs.context }}
+          docker build -t ${{ github.ref_name }} $BUILD_ARGS -f ${{ inputs.dockerfile }} ${{ inputs.context }}
 
       - id: push_image
         name: Push Image to ECR
         run: |
-          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ inputs.ecr_repository }}
-          docker tag ${{ inputs.image_name }} ${{ inputs.ecr_repository }}/${{ inputs.image_name }}:${{ github.sha }}
-          docker push ${{ inputs.ecr_repository }}/${{ inputs.image_name }}:${{ github.sha }}
-          echo "image_tag=${{ github.sha }}" >> $GITHUB_OUTPUT
+          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ inputs.ecr_registry }}
+          docker tag ${{ github.ref_name }} ${{ inputs.ecr_registry }}/${{ inputs.ecr_repo }}:${{ github.sha }}
+          docker push ${{ inputs.ecr_registry }}/${{ inputs.ecr_repo }}:${{ github.sha }}
 
   terraform_validate:
     runs-on: ubuntu-latest
@@ -117,8 +114,8 @@ jobs:
         uses: hashicorp/setup-terraform@v3
 
       - name: Terraform Validate
+        working-directory: ${{ inputs.terraform_directory }}
         run: |
-          cd ${{ inputs.terraform_directory }}
           terraform init -upgrade
           terraform validate
 
@@ -143,14 +140,14 @@ jobs:
 
       - name: Setup Terraform Variables
         run: |
-          echo "image_tag = \"${{ needs.image_build.outputs.image_tag }}\"" >> dev.tfvars
+          echo "image_tag = \"${{ github.ref_name }}\"" >> ${{ inputs.environment }}.tfvars
 
       - name: Terraform Plan
+        working-directory: ${{ inputs.terraform_directory }}
         run: |
-          cd ${{ inputs.terraform_directory }}
           terraform init
           terraform validate
-          terraform plan -input=false -var-file="../dev.tfvars" -out ../final.tfplan
+          terraform plan -input=false -var-file="../${{ inputs.environment }}.tfvars" -out ../final.tfplan
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -184,7 +181,7 @@ jobs:
           name: terraform_plan
 
       - name: Terraform Apply
+        working-directory: ${{ inputs.terraform_directory }}
         run: |
-          cd ${{ inputs.terraform_directory }}
           terraform init
           terraform apply -auto-approve ../final.tfplan
