@@ -76,7 +76,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           mask-aws-account-id: true
-          role-duration-seconds: 300
+          role-duration-seconds: 900
           role-to-assume: ${{ secrets.AWS_DEPLOYMENT_ROLE }}
           role-session-name: gha-lad-${{ github.run_id }}
           aws-region: ${{ secrets.AWS_REGION }}
@@ -141,7 +141,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           mask-aws-account-id: true
-          role-duration-seconds: 300
+          role-duration-seconds: 900
           role-to-assume: ${{ secrets.AWS_DEPLOYMENT_ROLE }}
           role-session-name: gha-lad-${{ github.run_id }}
           aws-region: ${{ secrets.AWS_REGION }}
@@ -171,7 +171,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           mask-aws-account-id: true
-          role-duration-seconds: 300
+          role-duration-seconds: 900
           role-to-assume: ${{ secrets.AWS_DEPLOYMENT_ROLE }}
           role-session-name: gha-lad-${{ github.run_id }}
           aws-region: ${{ secrets.AWS_REGION }}
@@ -213,7 +213,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           mask-aws-account-id: true
-          role-duration-seconds: 300
+          role-duration-seconds: 900
           role-to-assume: ${{ secrets.AWS_DEPLOYMENT_ROLE }}
           role-session-name: gha-lad-${{ github.run_id }}
           aws-region: ${{ secrets.AWS_REGION }}
