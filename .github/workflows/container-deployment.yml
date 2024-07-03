@@ -1,5 +1,3 @@
-name: .NET Container Deployment
-
 on:
   workflow_call:
     inputs:
@@ -7,10 +5,7 @@ on:
         type: string
         required: true
         default: dev
-      ecr_repository:
-        type: string
-        required: true
-      image_name:
+      ecr_repo:
         type: string
         required: true
       dockerfile:
@@ -51,8 +46,8 @@ jobs:
             --username ${{ secrets.PRIVATE_NUGET_REGISTRY_USER }} --password ${{ secrets.PRIVATE_NUGET_REGISTRY_PASS }} --store-password-in-clear-text
 
       - name: Build and Test
+        working-directory: ${{ inputs.project_directory }}
         run: |
-          cd ${{ inputs.project_directory }}
           dotnet restore
           dotnet build
           dotnet test
@@ -65,43 +60,69 @@ jobs:
 
   image_build:
     runs-on: ubuntu-latest
-    needs:
-      - dotnet_build
-    outputs:
-      image_tag: ${{ steps.push_image.outputs.image_tag }}
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Docker
+        uses: docker/setup-buildx-action@v3
+
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          mask-aws-account-id: true
+          role-duration-seconds: 900
+          role-to-assume: ${{ secrets.AWS_DEPLOYMENT_ROLE }}
+          role-session-name: gha-lad-${{ github.run_id }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Add Private NuGet Registry
-        if: ${{ inputs.private_nuget_registry }} == ''
-        run: |
-          echo "PRIVATE_NUGET_REGISTRY=${{ inputs.private_nuget_registry }}" >> arguments.txt
-          echo "PRIVATE_NUGET_REGISTRY_USER=${{ secrets.PRIVATE_NUGET_REGISTRY_USER }}" >> arguments.txt
-          echo "PRIVATE_NUGET_REGISTRY_PASS=${{ secrets.PRIVATE_NUGET_REGISTRY_PASS }}" >> arguments.txt
-          echo "BUILD_ARGS=$(for arg in $(cat arguments.txt); do echo "--build-arg $arg "; done | tr -d '\n')" >> $GITHUB_ENV
+      - name: ECR Login
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build Image
-        run: |
-          docker build -t ${{ inputs.image_name }} $BUILD_ARGS -f ${{ inputs.dockerfile }} ${{ inputs.context }}
+      - name: Docker Metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        with:
+          images: |
+            name=${{ env.REGISTRY }}/${{ inputs.ecr_repo }}
+          tags: |
+            type=schedule
+            type=ref,event=branch
+            type=ref,event=pr
+            type=ref,event=tag
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=sha,format=long
 
-      - id: push_image
-        name: Push Image to ECR
-        run: |
-          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ inputs.ecr_repository }}
-          docker tag ${{ inputs.image_name }} ${{ inputs.ecr_repository }}/${{ inputs.image_name }}:${{ github.sha }}
-          docker push ${{ inputs.ecr_repository }}/${{ inputs.image_name }}:${{ github.sha }}
-          echo "image_tag=${{ github.sha }}" >> $GITHUB_OUTPUT
+      - name: Docker Build
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ inputs.context }}
+          file: ${{ inputs.dockerfile }}
+          build-args: |
+            PRIVATE_NUGET_REGISTRY=${{inputs.private_nuget_registry || '' }}
+            PRIVATE_NUGET_REGISTRY_USER=${{ secrets.PRIVATE_NUGET_REGISTRY_USER || '' }}
+            PRIVATE_NUGET_REGISTRY_PASS=${{ secrets.PRIVATE_NUGET_REGISTRY_PASS || '' }}
+          provenance: false
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          push: true
+          # load: true
+          # outputs: type=docker,dest=/tmp/service.tar
 
   terraform_validate:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -109,16 +130,18 @@ jobs:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          mask-aws-account-id: true
+          role-duration-seconds: 900
+          role-to-assume: ${{ secrets.AWS_DEPLOYMENT_ROLE }}
+          role-session-name: gha-lad-${{ github.run_id }}
           aws-region: ${{ secrets.AWS_REGION }}
           
       - name: Terraform Setup
         uses: hashicorp/setup-terraform@v3
 
       - name: Terraform Validate
+        working-directory: ${{ inputs.terraform_directory }}
         run: |
-          cd ${{ inputs.terraform_directory }}
           terraform init -upgrade
           terraform validate
 
@@ -127,6 +150,9 @@ jobs:
     needs: 
       - image_build
       - terraform_validate
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -134,8 +160,10 @@ jobs:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          mask-aws-account-id: true
+          role-duration-seconds: 900
+          role-to-assume: ${{ secrets.AWS_DEPLOYMENT_ROLE }}
+          role-session-name: gha-lad-${{ github.run_id }}
           aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Terraform Setup
@@ -143,14 +171,14 @@ jobs:
 
       - name: Setup Terraform Variables
         run: |
-          echo "image_tag = \"${{ needs.image_build.outputs.image_tag }}\"" >> dev.tfvars
+          echo "image_tag = \"${{ github.ref_name }}\"" >> ${{ inputs.environment }}.tfvars
 
       - name: Terraform Plan
+        working-directory: ${{ inputs.terraform_directory }}
         run: |
-          cd ${{ inputs.terraform_directory }}
           terraform init
           terraform validate
-          terraform plan -input=false -var-file="../dev.tfvars" -out ../final.tfplan
+          terraform plan -input=false -var-file="../${{ inputs.environment }}.tfvars" -out ../final.tfplan
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -159,11 +187,15 @@ jobs:
           path: final.tfplan
         
   terraform_apply:
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' || github.ref_name == 'master'
     environment: ${{ inputs.environment }}
     runs-on: ubuntu-latest
-    needs: 
+    needs:
+      - dotnet_build
       - terraform_plan
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -171,8 +203,10 @@ jobs:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          mask-aws-account-id: true
+          role-duration-seconds: 900
+          role-to-assume: ${{ secrets.AWS_DEPLOYMENT_ROLE }}
+          role-session-name: gha-lad-${{ github.run_id }}
           aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Terraform Setup
@@ -184,7 +218,7 @@ jobs:
           name: terraform_plan
 
       - name: Terraform Apply
+        working-directory: ${{ inputs.terraform_directory }}
         run: |
-          cd ${{ inputs.terraform_directory }}
           terraform init
           terraform apply -auto-approve ../final.tfplan
