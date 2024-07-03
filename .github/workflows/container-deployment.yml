@@ -88,7 +88,7 @@ jobs:
 
       - name: Build Image
         run: |
-          docker build -t ${{ github.ref_name }} $BUILD_ARGS -f ${{ inputs.dockerfile }} ${{ inputs.context }}
+          docker build -t ${{ inputs.ecr_registry }} $BUILD_ARGS -f ${{ inputs.dockerfile }} ${{ inputs.context }}
 
       - id: push_image
         name: Push Image to ECR
