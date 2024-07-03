@@ -150,6 +150,9 @@ jobs:
     needs: 
       - image_build
       - terraform_validate
+    concurrency:
+      group: ${{ github.repository }}
+      cancel-in-progress: false
     permissions:
       id-token: write
       contents: read
@@ -193,6 +196,9 @@ jobs:
     needs:
       - dotnet_build
       - terraform_plan
+    concurrency:
+      group: ${{ github.repository }}
+      cancel-in-progress: false
     permissions:
       id-token: write
       contents: read
