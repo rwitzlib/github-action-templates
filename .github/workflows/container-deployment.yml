@@ -164,8 +164,10 @@ jobs:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          mask-aws-account-id: true
+          role-duration-seconds: 300
+          role-to-assume: ${{ secrets.AWS_DEPLOYMENT_ROLE }}
+          role-session-name: gha-lad-${{ github.run_id }}
           aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Terraform Setup
@@ -201,8 +203,10 @@ jobs:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          mask-aws-account-id: true
+          role-duration-seconds: 300
+          role-to-assume: ${{ secrets.AWS_DEPLOYMENT_ROLE }}
+          role-session-name: gha-lad-${{ github.run_id }}
           aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Terraform Setup
