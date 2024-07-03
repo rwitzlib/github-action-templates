@@ -29,6 +29,9 @@ on:
         type: string
         default: ''
 
+permissions:
+  id-token: write
+  contents: read
 jobs:
   dotnet_build:
     runs-on: ubuntu-latest
