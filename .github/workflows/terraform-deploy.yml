@@ -27,15 +27,20 @@ jobs:
           role-to-assume: ${{ secrets.AWS_DEPLOYMENT_ROLE }}
           role-session-name: gha-lad-${{ github.run_id }}
           aws-region: ${{ secrets.AWS_REGION }}
+          
       - name: Terraform Setup
         uses: hashicorp/setup-terraform@v3
-
+      
+      - name: Setup Terraform Variables
+        run: |
+          echo "image_tag = \"${{ github.ref_name }}\"" >> ${{ inputs.environment }}.tfvars
+  
       - name: Terraform Plan
         working-directory: ${{ inputs.terraform_directory }}
         run: |
-          terraform init -upgrade
+          terraform init
           terraform validate
-          terraform plan -out ../tfplan
+          terraform plan -input=false -var-file="../${{ inputs.environment }}.tfvars" -out ../final.tfplan
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
