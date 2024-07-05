@@ -27,7 +27,7 @@ jobs:
           role-to-assume: ${{ secrets.AWS_DEPLOYMENT_ROLE }}
           role-session-name: gha-lad-${{ github.run_id }}
           aws-region: ${{ secrets.AWS_REGION }}
-          
+
       - name: Terraform Setup
         uses: hashicorp/setup-terraform@v3
       
@@ -46,7 +46,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: terraform_plan
-          path: tfplan
+          path: final.tfplan
         
   terraform_deploy:
     if: github.event_name == 'workflow_dispatch' || github.ref_name == 'master'
@@ -82,4 +82,4 @@ jobs:
         working-directory: ${{ inputs.terraform_directory }}
         run: |
           terraform init -upgrade
-          terraform apply ../tfplan
+          terraform apply ../final.tfplan
