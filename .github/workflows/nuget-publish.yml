@@ -1,7 +1,7 @@
 on:
     workflow_call:
       inputs:
-        package:
+        publish_project:
           type: string
           required: true
           default: dev
@@ -20,11 +20,11 @@ jobs:
           dotnet-version: ${{ inputs.dotnet_version}}
 
       - name: Package
-        run: dotnet pack
+        run: dotnet pack ${{ inputs.publish_project }}
 
       - name: Publish
         run: |
-          dotnet nuget push ./${{ inputs.package }}/bin/Release/*.nupkg  \
+          dotnet nuget push ${{ inputs.publish_project }}/bin/Release/*.nupkg  \
             -k ${{ secrets.NUGET_TOKEN }} \
             -s https://api.nuget.org/v3/index.json \
             --skip-duplicate
