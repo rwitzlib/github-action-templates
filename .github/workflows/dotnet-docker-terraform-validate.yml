@@ -26,6 +26,9 @@ on:
       private_nuget_registry:
         type: string
         default: ''
+      timezone:
+        type: string
+        default: Central Standard Time
 
 jobs:
   dotnet_build:
@@ -38,6 +41,11 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           global-json-file: ${{ inputs.global_json_file }}
+
+      - uses: szenius/set-timezone@v2.0
+        with:
+          timezoneLinux: "${{ inputs.timezone }}"
+          timezoneWindows: "${{ inputs.timezone }}"
 
       - name: Add Private NuGet Registry
         if: ${{ inputs.private_nuget_registry != '' }}

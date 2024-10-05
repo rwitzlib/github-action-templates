@@ -39,6 +39,11 @@ jobs:
         with:
           global-json-file: ${{ inputs.global_json_file }}
 
+      - uses: szenius/set-timezone@v2.0
+        with:
+          timezoneLinux: "Central Standard Time"
+          timezoneWindows: "Central Standard Time"
+
       - name: Add Private NuGet Registry
         if: ${{ inputs.private_nuget_registry != '' }}
         run: |
