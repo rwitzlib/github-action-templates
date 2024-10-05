@@ -28,7 +28,7 @@ on:
         default: ''
       timezone:
         type: string
-        default: Central Standard Time
+        default: CST
 
 jobs:
   dotnet_build:
