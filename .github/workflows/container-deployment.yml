@@ -26,7 +26,7 @@ jobs:
       contents: read
     steps:
       - name: Dotnet Build
-        uses: rwitzlib/github-action-templates/.github/actions/dotnet-build@MARK-165-fix-docker-datetime
+        uses: rwitzlib/github-action-templates/.github/actions/dotnet-build@v1.0.0
         with:
           project_directory: ${{ inputs.solution_directory }}
           global_json_file: ${{ inputs.global_json_file }}
@@ -41,7 +41,7 @@ jobs:
         cfg: ${{ fromJson(inputs.docker) }}
     steps:
       - name: Docker Build Push
-        uses: rwitzlib/github-action-templates/.github/actions/docker-build-push@MARK-165-fix-docker-datetime
+        uses: rwitzlib/github-action-templates/.github/actions/docker-build-push@v1.0.0
         with:
           ecr_repo: ${{ matrix.cfg.ecr_repo }}
           dockerfile: ${{ matrix.cfg.dockerfile }}
