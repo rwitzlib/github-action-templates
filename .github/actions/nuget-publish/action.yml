@@ -27,6 +27,6 @@ runs:
       shell: bash
       run: |
         dotnet nuget push ${{ inputs.project_name }}/bin/Release/*.nupkg  \
-          -k ${{ secrets.NUGET_TOKEN }} \
+          -k ${{ env.NUGET_TOKEN }} \
           -s https://api.nuget.org/v3/index.json \
           --skip-duplicate

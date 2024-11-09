@@ -67,7 +67,7 @@ jobs:
           role-duration-seconds: 900
           role-to-assume: ${{ secrets.AWS_DEPLOYMENT_ROLE }}
           role-session-name: gha-lad-${{ github.run_id }}
-          aws-region: us-east-2
+          aws-region: ${{ secrets.AWS_REGION }}
           
       - name: Terraform Setup
         uses: hashicorp/setup-terraform@v3
@@ -101,7 +101,7 @@ jobs:
           role-duration-seconds: 900
           role-to-assume: ${{ secrets.AWS_DEPLOYMENT_ROLE }}
           role-session-name: gha-lad-${{ github.run_id }}
-          aws-region: us-east-2
+          aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Terraform Setup
         uses: hashicorp/setup-terraform@v3
@@ -146,7 +146,7 @@ jobs:
           role-duration-seconds: 900
           role-to-assume: ${{ secrets.AWS_DEPLOYMENT_ROLE }}
           role-session-name: gha-lad-${{ github.run_id }}
-          aws-region: us-east-2
+          aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Terraform Setup
         uses: hashicorp/setup-terraform@v3
