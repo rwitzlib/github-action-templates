@@ -1,0 +1,69 @@
+name: Docker Build Push
+
+inputs:
+  ecr_repo:
+    type: string
+    required: true
+  dockerfile:
+    type: string
+    required: true
+  context:
+    type: string
+    required: true
+  build-args:
+    type: string
+    required: false
+
+runs:
+  using: composite
+  steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Docker
+      uses: docker/setup-buildx-action@v3
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        mask-aws-account-id: true
+        role-duration-seconds: 900
+        role-to-assume: ${{ env.AWS_DEPLOYMENT_ROLE }}
+        role-session-name: gha-lad-${{ github.run_id }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: ECR Login
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
+
+    - name: Docker Metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      env:
+        REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+      with:
+        images: |
+          name=${{ env.REGISTRY }}/${{ inputs.ecr_repo }}
+        tags: |
+          type=schedule
+          type=ref,event=branch
+          type=ref,event=pr
+          type=ref,event=tag
+          type=raw,value=latest,enable={{is_default_branch}}
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+          type=semver,pattern={{major}}
+          type=sha,format=long
+
+    - name: Docker Build
+      uses: docker/build-push-action@v5
+      with:
+        context: ${{ inputs.context }}
+        file: ${{ inputs.dockerfile }}
+        build-args: ${{ inputs.build-args}}
+        provenance: false
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        push: true
+        # load: true
+        # outputs: type=docker,dest=/tmp/service.tar

@@ -1,0 +1,32 @@
+name: Dotnet Build and Test
+
+inputs:
+  project_name:
+    type: string
+    required: true
+  global_json_file:
+    type: string
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup dotnet
+      uses: actions/setup-dotnet@v4
+      with:
+        global-json-file: ${{ inputs.global_json_file }}
+
+    - name: Package
+      shell: bash
+        run: dotnet pack ${{ inputs.project_name }}
+
+    - name: Publish
+      shell: bash
+      run: |
+        dotnet nuget push ${{ inputs.project_name }}/bin/Release/*.nupkg  \
+          -k ${{ env.NUGET_TOKEN }} \
+          -s https://api.nuget.org/v3/index.json \
+          --skip-duplicate
