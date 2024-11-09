@@ -21,7 +21,7 @@ runs:
 
     - name: Package
       shell: bash
-        run: dotnet pack ${{ inputs.project_name }}
+      run: dotnet pack ${{ inputs.project_name }}
 
     - name: Publish
       shell: bash
