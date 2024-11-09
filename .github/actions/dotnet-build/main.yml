@@ -1,0 +1,42 @@
+name: Dotnet Build and Test
+
+inputs:
+  project_directory:
+    type: string
+    required: true
+  global_json_file:
+    type: string
+    required: true
+  timezone:
+    type: string
+    default: CST
+
+runs:
+  using: composite
+  steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup dotnet
+      uses: actions/setup-dotnet@v4
+      with:
+        global-json-file: ${{ inputs.global_json_file }}
+
+    - uses: szenius/set-timezone@v2.0
+      with:
+        timezoneLinux: "${{ inputs.timezone }}"
+        timezoneWindows: "${{ inputs.timezone }}"
+
+    - name: Build and Test
+      working-directory: ${{ inputs.project_directory }}
+      shell: bash
+      run: |
+        dotnet restore
+        dotnet build
+        dotnet test
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        path: |
+          ./TestResults/*
