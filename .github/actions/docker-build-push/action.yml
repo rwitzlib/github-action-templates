@@ -28,9 +28,9 @@ runs:
       with:
         mask-aws-account-id: true
         role-duration-seconds: 900
-        role-to-assume: ${{ secrets.AWS_DEPLOYMENT_ROLE }}
+        role-to-assume: ${{ env.AWS_DEPLOYMENT_ROLE }}
         role-session-name: gha-lad-${{ github.run_id }}
-        aws-region: ${{ secrets.AWS_REGION }}
+        aws-region: ${{ env.AWS_REGION }}
 
     - name: ECR Login
       id: login-ecr
