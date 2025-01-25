@@ -48,7 +48,7 @@ jobs:
           context: ${{ matrix.cfg.context }}
           build-args: ${{ matrix.cfg.build-args }}
         env:
-          AWS_REGION: ${{ secrets.AWS_REGION }}
+          AWS_REGION: us-east-2
           AWS_DEPLOYMENT_ROLE: ${{ secrets.AWS_DEPLOYMENT_ROLE }}
 
   terraform_validate:
@@ -67,7 +67,7 @@ jobs:
           role-duration-seconds: 900
           role-to-assume: ${{ secrets.AWS_DEPLOYMENT_ROLE }}
           role-session-name: gha-lad-${{ github.run_id }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          aws-region: us-east-2
           
       - name: Terraform Setup
         uses: hashicorp/setup-terraform@v3
@@ -101,7 +101,7 @@ jobs:
           role-duration-seconds: 900
           role-to-assume: ${{ secrets.AWS_DEPLOYMENT_ROLE }}
           role-session-name: gha-lad-${{ github.run_id }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          aws-region: us-east-2
 
       - name: Terraform Setup
         uses: hashicorp/setup-terraform@v3
@@ -146,7 +146,7 @@ jobs:
           role-duration-seconds: 900
           role-to-assume: ${{ secrets.AWS_DEPLOYMENT_ROLE }}
           role-session-name: gha-lad-${{ github.run_id }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          aws-region: us-east-2
 
       - name: Terraform Setup
         uses: hashicorp/setup-terraform@v3
