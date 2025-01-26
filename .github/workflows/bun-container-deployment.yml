@@ -8,9 +8,6 @@ on:
       docker:
         type: string
         required: true
-      solution_directory:
-        type: string
-        required: true
       terraform_directory:
         type: string
         required: true
