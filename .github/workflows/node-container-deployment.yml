@@ -89,7 +89,8 @@ jobs:
 
       - name: Setup Terraform Variables
         run: |
-          echo "image_tag = \"${{ github.ref_name }}\"" >> ${{ inputs.environment }}.tfvars
+          REF_NAME=$(echo "${{ github.ref_name }}" | sed 's/\//-/g')
+          echo "image_tag = \"${REF_NAME}\"" >> ${{ inputs.environment }}.tfvars
 
       - name: Terraform Plan
         working-directory: ${{ inputs.terraform_directory }}
