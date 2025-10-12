@@ -18,6 +18,9 @@ on:
         type: string
         required: true
 
+env:
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -26,11 +29,14 @@ jobs:
       contents: read
     steps:
       - name: Dotnet Build
-        uses: rwitzlib/github-action-templates/.github/actions/dotnet-build@v1.4.0
+        uses: rwitzlib/github-action-templates/.github/actions/dotnet-build@try-fix-again
         with:
           project_directory: ${{ inputs.solution_directory }}
           global_json_file: ${{ inputs.global_json_file }}
-
+        env:
+          AWS_REGION: us-east-2
+          AWS_DEPLOYMENT_ROLE: ${{ secrets.AWS_DEPLOYMENT_ROLE }}
+          
   docker:
     runs-on: ubuntu-latest
     permissions:
