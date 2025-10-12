@@ -26,7 +26,7 @@ jobs:
       contents: read
     steps:
       - name: Dotnet Build
-        uses: rwitzlib/github-action-templates/.github/actions/dotnet-build@v1.0.0
+        uses: rwitzlib/github-action-templates/.github/actions/dotnet-build@v1.4.0
         with:
           project_directory: ${{ inputs.solution_directory }}
           global_json_file: ${{ inputs.global_json_file }}

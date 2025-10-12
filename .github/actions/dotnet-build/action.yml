@@ -17,6 +17,15 @@ runs:
     - name: Checkout
       uses: actions/checkout@v4
 
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        mask-aws-account-id: true
+        role-duration-seconds: 900
+        role-to-assume: ${{ env.AWS_DEPLOYMENT_ROLE }}
+        role-session-name: gha-lad-${{ github.run_id }}
+        aws-region: ${{ env.AWS_REGION }}
+
     - name: Setup dotnet
       uses: actions/setup-dotnet@v4
       with:
