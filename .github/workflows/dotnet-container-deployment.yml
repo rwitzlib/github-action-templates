@@ -17,13 +17,17 @@ on:
       terraform_directory:
         type: string
         required: true
+      runs_on:
+        type: string
+        required: false
+        default: ubuntu-latest
 
 env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.runs_on }}
     permissions:
       id-token: write
       contents: read
@@ -38,7 +42,7 @@ jobs:
           AWS_DEPLOYMENT_ROLE: ${{ secrets.AWS_DEPLOYMENT_ROLE }}
           
   docker:
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.runs_on }}
     permissions:
       id-token: write
       contents: read
@@ -58,7 +62,7 @@ jobs:
           AWS_DEPLOYMENT_ROLE: ${{ secrets.AWS_DEPLOYMENT_ROLE }}
 
   terraform_validate:
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.runs_on }}
     permissions:
       id-token: write
       contents: read
@@ -85,7 +89,7 @@ jobs:
           terraform validate
 
   terraform_plan:
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.runs_on }}
     needs: 
       - build
       - docker
@@ -132,7 +136,7 @@ jobs:
   terraform_apply:
     if: github.event_name == 'workflow_dispatch' || github.ref_name == 'master'
     environment: ${{ inputs.environment }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.runs_on }}
     needs:
       - terraform_plan
     concurrency:
