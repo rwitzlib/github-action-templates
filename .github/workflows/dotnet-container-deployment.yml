@@ -134,7 +134,7 @@ jobs:
           path: final.tfplan
         
   terraform_apply:
-    if: github.event_name == 'workflow_dispatch' || github.ref_name == 'master'
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.ref_name == 'master'
     environment: ${{ inputs.environment }}
     runs-on: ${{ inputs.runs_on }}
     needs:
