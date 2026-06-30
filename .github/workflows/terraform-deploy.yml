@@ -5,6 +5,10 @@ on:
         type: string
         required: false
         default: ubuntu-latest
+      region:
+        type: string
+        required: false
+        default: us-east-2
       environment:
         type: string
         required: true
@@ -30,7 +34,7 @@ jobs:
           role-duration-seconds: 900
           role-to-assume: ${{ secrets.AWS_DEPLOYMENT_ROLE }}
           role-session-name: gha-${{ github.repository }}-${{ github.run_id }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          aws-region: ${{ inputs.region || 'us-east-2' }}
 
       - name: Terraform Setup
         uses: hashicorp/setup-terraform@v3
@@ -65,7 +69,7 @@ jobs:
           role-duration-seconds: 900
           role-to-assume: ${{ secrets.AWS_DEPLOYMENT_ROLE }}
           role-session-name: gha-${{ github.repository }}-${{ github.run_id }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          aws-region: ${{ inputs.region || 'us-east-2' }}
 
       - name: Terraform Apply
         if: github.event_name == 'workflow_dispatch' || github.ref_name == 'master'
