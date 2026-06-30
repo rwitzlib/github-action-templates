@@ -33,7 +33,7 @@ jobs:
           mask-aws-account-id: true
           role-duration-seconds: 900
           role-to-assume: ${{ secrets.AWS_DEPLOYMENT_ROLE }}
-          role-session-name: gha-${{ github.repository }}-${{ github.run_id }}
+          role-session-name: gha-${{ github.run_id }}
           aws-region: ${{ inputs.region || 'us-east-2' }}
 
       - name: Terraform Setup
@@ -68,7 +68,7 @@ jobs:
           mask-aws-account-id: true
           role-duration-seconds: 900
           role-to-assume: ${{ secrets.AWS_DEPLOYMENT_ROLE }}
-          role-session-name: gha-${{ github.repository }}-${{ github.run_id }}
+          role-session-name: gha-${{ github.run_id }}
           aws-region: ${{ inputs.region || 'us-east-2' }}
 
       - name: Terraform Apply
