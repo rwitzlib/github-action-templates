@@ -1,6 +1,10 @@
 on:
   workflow_call:
     inputs:
+      runs_on:
+        type: string
+        required: false
+        default: ubuntu-latest
       environment:
         type: string
         required: true
@@ -11,7 +15,7 @@ on:
 
 jobs:
   terraform_plan:
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.runs_on }}
     permissions:
       id-token: write
       contents: read
@@ -25,7 +29,7 @@ jobs:
           mask-aws-account-id: true
           role-duration-seconds: 900
           role-to-assume: ${{ secrets.AWS_DEPLOYMENT_ROLE }}
-          role-session-name: gha-lad-${{ github.run_id }}
+          role-session-name: gha-${{ github.repository }}-${{ github.run_id }}
           aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Terraform Setup
@@ -42,6 +46,25 @@ jobs:
           terraform init -backend-config="./backend/${{ inputs.environment }}.tfbackend"
           terraform validate
           terraform plan -input=false -var-file="./${{ inputs.environment }}.tfvars" -out ./final.tfplan
+
+  terraform_apply:
+    needs: terraform_plan
+    runs-on: ${{ inputs.runs_on }}
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          mask-aws-account-id: true
+          role-duration-seconds: 900
+          role-to-assume: ${{ secrets.AWS_DEPLOYMENT_ROLE }}
+          role-session-name: gha-${{ github.repository }}-${{ github.run_id }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Terraform Apply
         if: github.event_name == 'workflow_dispatch' || github.ref_name == 'master'
