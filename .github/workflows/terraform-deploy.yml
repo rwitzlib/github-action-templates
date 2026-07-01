@@ -37,7 +37,7 @@ jobs:
           aws-region: ${{ inputs.region || 'us-east-2' }}
 
       - name: Terraform Setup
-        uses: hashicorp/setup-terraform@v3
+        uses: hashicorp/setup-terraform@v4
       
       - name: Setup Terraform Variables
         working-directory: ${{ inputs.terraform_directory }}
@@ -70,6 +70,9 @@ jobs:
           role-to-assume: ${{ secrets.AWS_DEPLOYMENT_ROLE }}
           role-session-name: gha-${{ github.repository }}-${{ github.run_id }}
           aws-region: ${{ inputs.region || 'us-east-2' }}
+
+      - name: Terraform Setup
+        uses: hashicorp/setup-terraform@v4
 
       - name: Terraform Apply
         if: github.event_name == 'workflow_dispatch' || github.ref_name == 'master'
