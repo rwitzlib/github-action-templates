@@ -143,6 +143,7 @@ jobs:
     permissions:
       id-token: write
       contents: read
+    if: github.event_name == 'workflow_dispatch' || github.ref_name == 'master'
     environment: ${{ inputs.environment }}
     steps:
       - name: Checkout
@@ -167,7 +168,6 @@ jobs:
           path: ${{ inputs.terraform_directory }}
 
       - name: Terraform Apply
-        if: github.event_name == 'workflow_dispatch' || github.ref_name == 'master'
         working-directory: ${{ inputs.terraform_directory }}
         run: |
           terraform init -backend-config="./backend/${{ inputs.environment }}.tfbackend"
