@@ -1,6 +1,14 @@
 on:
   workflow_call:
     inputs:
+      runs_on:
+        type: string
+        required: false
+        default: ubuntu-latest
+      region:
+        type: string
+        required: false
+        default: us-east-2
       environment:
         type: string
         required: true
@@ -17,13 +25,6 @@ on:
       terraform_directory:
         type: string
         required: true
-      runs_on:
-        type: string
-        required: false
-        default: ubuntu-latest
-
-env:
-  AWS_REGION: ${{ secrets.AWS_REGION }}
 
 jobs:
   build:
@@ -38,7 +39,7 @@ jobs:
           project_directory: ${{ inputs.solution_directory }}
           global_json_file: ${{ inputs.global_json_file }}
         env:
-          AWS_REGION: us-east-2
+          AWS_REGION: ${{ inputs.region || 'us-east-2' }}
           AWS_DEPLOYMENT_ROLE: ${{ secrets.AWS_DEPLOYMENT_ROLE }}
           
   docker:
@@ -58,7 +59,7 @@ jobs:
           context: ${{ matrix.cfg.context }}
           build-args: ${{ matrix.cfg.build-args }}
         env:
-          AWS_REGION: us-east-2
+          AWS_REGION: ${{ inputs.region || 'us-east-2' }}
           AWS_DEPLOYMENT_ROLE: ${{ secrets.AWS_DEPLOYMENT_ROLE }}
 
   terraform_validate:
@@ -68,27 +69,27 @@ jobs:
       contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           mask-aws-account-id: true
           role-duration-seconds: 900
           role-to-assume: ${{ secrets.AWS_DEPLOYMENT_ROLE }}
           role-session-name: gha-lad-${{ github.run_id }}
-          aws-region: us-east-2
+          aws-region: ${{ inputs.region || 'us-east-2' }}
           
       - name: Terraform Setup
-        uses: hashicorp/setup-terraform@v3
+        uses: hashicorp/setup-terraform@v4
 
       - name: Terraform Validate
         working-directory: ${{ inputs.terraform_directory }}
         run: |
-          terraform init -upgrade
+          terraform init -backend-config="./backend/${{ inputs.environment }}.tfbackend"
           terraform validate
 
-  terraform_promote:
+  terraform_plan:
     runs-on: ${{ inputs.runs_on }}
     needs: 
       - build
@@ -102,34 +103,72 @@ jobs:
       contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           mask-aws-account-id: true
           role-duration-seconds: 900
           role-to-assume: ${{ secrets.AWS_DEPLOYMENT_ROLE }}
-          role-session-name: gha-lad-${{ github.run_id }}
-          aws-region: us-east-2
+          role-session-name: gha-${{ github.run_id }}
+          aws-region: ${{ inputs.region || 'us-east-2' }}
 
       - name: Terraform Setup
-        uses: hashicorp/setup-terraform@v3
-
+        uses: hashicorp/setup-terraform@v4
+      
       - name: Setup Terraform Variables
+        working-directory: ${{ inputs.terraform_directory }}
         run: |
           echo "image_tag = \"${{ github.ref_name }}\"" >> ${{ inputs.environment }}.tfvars
-
+  
       - name: Terraform Plan
         working-directory: ${{ inputs.terraform_directory }}
         run: |
-          terraform init
+          terraform init -backend-config="./backend/${{ inputs.environment }}.tfbackend"
           terraform validate
-          terraform plan -input=false -var-file="../${{ inputs.environment }}.tfvars" -out ./final.tfplan
+          terraform plan -input=false -var-file="./${{ inputs.environment }}.tfvars" -out ./final.tfplan
+
+      - name: Upload Terraform Plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan-${{ inputs.environment }}
+          path: ${{ inputs.terraform_directory }}/final.tfplan
+          if-no-files-found: error
+          retention-days: 1
+
+  terraform_apply:
+    needs: terraform_plan
+    runs-on: ${{ inputs.runs_on }}
+    permissions:
+      id-token: write
+      contents: read
+    environment: ${{ inputs.environment }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          mask-aws-account-id: true
+          role-duration-seconds: 900
+          role-to-assume: ${{ secrets.AWS_DEPLOYMENT_ROLE }}
+          role-session-name: gha-${{ github.run_id }}
+          aws-region: ${{ inputs.region || 'us-east-2' }}
+
+      - name: Terraform Setup
+        uses: hashicorp/setup-terraform@v4
+
+      - name: Download Terraform Plan
+        uses: actions/download-artifact@v4
+        with:
+          name: terraform-plan-${{ inputs.environment }}
+          path: ${{ inputs.terraform_directory }}
 
       - name: Terraform Apply
         if: github.event_name == 'workflow_dispatch' || github.ref_name == 'master'
         working-directory: ${{ inputs.terraform_directory }}
         run: |
-          terraform init
+          terraform init -backend-config="./backend/${{ inputs.environment }}.tfbackend"
           terraform apply -auto-approve ./final.tfplan
