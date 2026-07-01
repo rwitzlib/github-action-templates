@@ -25,10 +25,10 @@ jobs:
       contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           mask-aws-account-id: true
           role-duration-seconds: 900
@@ -51,6 +51,14 @@ jobs:
           terraform validate
           terraform plan -input=false -var-file="./${{ inputs.environment }}.tfvars" -out ./final.tfplan
 
+      - name: Upload Terraform Plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan-${{ inputs.environment }}
+          path: ${{ inputs.terraform_directory }}/final.tfplan
+          if-no-files-found: error
+          retention-days: 1
+
   terraform_apply:
     needs: terraform_plan
     runs-on: ${{ inputs.runs_on }}
@@ -60,10 +68,10 @@ jobs:
     environment: ${{ inputs.environment }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           mask-aws-account-id: true
           role-duration-seconds: 900
@@ -73,6 +81,12 @@ jobs:
 
       - name: Terraform Setup
         uses: hashicorp/setup-terraform@v4
+
+      - name: Download Terraform Plan
+        uses: actions/download-artifact@v4
+        with:
+          name: terraform-plan-${{ inputs.environment }}
+          path: ${{ inputs.terraform_directory }}
 
       - name: Terraform Apply
         if: github.event_name == 'workflow_dispatch' || github.ref_name == 'master'
