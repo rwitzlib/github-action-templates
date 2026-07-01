@@ -65,6 +65,7 @@ jobs:
     permissions:
       id-token: write
       contents: read
+    if: github.event_name == 'workflow_dispatch' || github.ref_name == 'master'
     environment: ${{ inputs.environment }}
     steps:
       - name: Checkout
