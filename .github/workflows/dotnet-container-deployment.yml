@@ -29,7 +29,7 @@ on:
         type: string
         required: false
         description: "JSON string of the variables to pass to the terraform plan"
-        default: ""
+        default: '{}'
 
 jobs:
   build:
@@ -139,9 +139,13 @@ jobs:
 
       - name: Setup Terraform Variables
         working-directory: ${{ inputs.terraform_directory }}
+        env:
+          TERRAFORM_VARIABLES: ${{ inputs.terraform_variables }}
         run: |
-          echo "$${{ inputs.terraform_variables }}" | jq -r 'to_entries | .[] | "\(.key) = \(.value)"' >> ${{ inputs.environment }}.tfvars
-  
+          printf '%s' "$TERRAFORM_VARIABLES" |
+            jq -r 'to_entries[] | "\(.key) = \(.value | @json)"' \
+            >> "${{ inputs.environment }}.tfvars"
+
       - name: Terraform Plan
         working-directory: ${{ inputs.terraform_directory }}
         run: |
