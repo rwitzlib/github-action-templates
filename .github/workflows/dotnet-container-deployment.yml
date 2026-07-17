@@ -25,6 +25,11 @@ on:
       terraform_directory:
         type: string
         required: true
+      terraform_variables:
+        type: string
+        required: false
+        description: "JSON string of the variables to pass to the terraform plan"
+        default: ""
 
 jobs:
   build:
@@ -120,7 +125,7 @@ jobs:
       - name: Setup Terraform Variables
         working-directory: ${{ inputs.terraform_directory }}
         run: |
-          echo "image_tag = \"${{ github.ref_name }}\"" >> ${{ inputs.environment }}.tfvars
+          echo "$${{ inputs.terraform_variables }}" | jq -r 'to_entries | .[] | "\(.key) = \(.value)"' >> ${{ inputs.environment }}.tfvars
   
       - name: Terraform Plan
         working-directory: ${{ inputs.terraform_directory }}
