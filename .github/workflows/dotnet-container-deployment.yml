@@ -121,7 +121,22 @@ jobs:
 
       - name: Terraform Setup
         uses: hashicorp/setup-terraform@v4
-      
+
+      - name: Export Terraform secrets
+        shell: bash
+        env:
+          SECRETS_JSON: ${{ toJSON(secrets) }}
+        run: |
+          while IFS='=' read -r key value; do
+            suffix="${key#TF_VAR_}"
+            printf 'TF_VAR_%s=%s\n' "${suffix,,}" "$value"
+          done < <(
+            echo "$SECRETS_JSON" |
+              jq -r 'to_entries[]
+                | select(.key | startswith("TF_VAR_"))
+                | "\(.key)=\(.value)"'
+          ) >> "$GITHUB_ENV"
+
       - name: Setup Terraform Variables
         working-directory: ${{ inputs.terraform_directory }}
         run: |
