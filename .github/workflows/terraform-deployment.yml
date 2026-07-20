@@ -16,6 +16,11 @@ on:
         type: string
         required: false
         default: ./tf
+      terraform_variables:
+        type: string
+        required: false
+        description: "JSON string of the variables to pass to the terraform plan"
+        default: '{}'
 
 jobs:
   terraform_plan:
@@ -39,10 +44,29 @@ jobs:
       - name: Terraform Setup
         uses: hashicorp/setup-terraform@v4
       
+      - name: Export Terraform secrets
+        shell: bash
+        env:
+          SECRETS_JSON: ${{ toJSON(secrets) }}
+        run: |
+          while IFS='=' read -r key value; do
+            suffix="${key#TF_VAR_}"
+            printf 'TF_VAR_%s=%s\n' "${suffix,,}" "$value"
+          done < <(
+            echo "$SECRETS_JSON" |
+              jq -r 'to_entries[]
+                | select(.key | startswith("TF_VAR_"))
+                | "\(.key)=\(.value)"'
+          ) >> "$GITHUB_ENV"
+
       - name: Setup Terraform Variables
         working-directory: ${{ inputs.terraform_directory }}
+        env:
+          TERRAFORM_VARIABLES: ${{ inputs.terraform_variables }}
         run: |
-          echo "image_tag = \"${{ github.ref_name }}\"" >> ${{ inputs.environment }}.tfvars
+          printf '%s' "$TERRAFORM_VARIABLES" |
+            jq -r 'to_entries[] | "\(.key) = \(.value | @json)"' \
+            >> "${{ inputs.environment }}.tfvars"
   
       - name: Terraform Plan
         working-directory: ${{ inputs.terraform_directory }}
