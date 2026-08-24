@@ -12,7 +12,6 @@ on:
       environment:
         type: string
         required: true
-        default: dev
       docker:
         type: string
         required: true
@@ -100,6 +99,10 @@ jobs:
       - build
       - docker
       - terraform_validate
+    # Environment-scoped secrets (TF_VAR_*) are only injected into jobs that declare
+    # the environment. The saved plan bakes variable values in, so they must be
+    # present here, not just in apply.
+    environment: ${{ inputs.environment }}
     concurrency:
       group: ${{ github.repository }}
       cancel-in-progress: false
