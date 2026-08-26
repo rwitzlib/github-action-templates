@@ -5,6 +5,9 @@ on:
         type: string
         required: false
         default: ubuntu-latest
+      depot_project:
+        type: string
+        required: false
       region:
         type: string
         required: false
