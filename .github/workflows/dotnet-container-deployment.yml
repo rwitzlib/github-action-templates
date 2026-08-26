@@ -59,12 +59,13 @@ jobs:
         cfg: ${{ fromJson(inputs.docker) }}
     steps:
       - name: Docker Build Push
-        uses: rwitzlib/github-action-templates/.github/actions/docker-build-push@v1.0.0
+        uses: rwitzlib/github-action-templates/.github/actions/docker-build-push@v1.12.0
         with:
           ecr_repo: ${{ matrix.cfg.ecr_repo }}
           dockerfile: ${{ matrix.cfg.dockerfile }}
           context: ${{ matrix.cfg.context }}
           build-args: ${{ matrix.cfg.build-args }}
+          depot_project: ${{ inputs.depot_project }}
         env:
           AWS_REGION: ${{ inputs.region || 'us-east-2' }}
           AWS_DEPLOYMENT_ROLE: ${{ secrets.AWS_DEPLOYMENT_ROLE }}
